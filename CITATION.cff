@@ -3,6 +3,6 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Slobodin
     given-names: Aaron
-title: "A method for proving lower bounds for the 2-limited broadcast domination number on grid graphs"
+title: "C++ implementation of a method for proving lower bounds for the 2-limited broadcast domination number on grid graphs"
 version: 1.0
 date-released: 2022-07-29
