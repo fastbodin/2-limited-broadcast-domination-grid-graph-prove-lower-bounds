@@ -6,3 +6,4 @@ authors:
 title: "C++ implementation of a method for proving lower bounds for the 2-limited broadcast domination number on grid graphs"
 version: 1.0
 date-released: 2022-07-29
+repository-code: "https://github.com/fastbodin/2-limited-broadcast-domination-grid-graph-prove-lower-bounds"
