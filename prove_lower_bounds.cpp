@@ -4,11 +4,16 @@
 #include "gurobi_c++.h"
 
 ////****** SET PROBLEM INPUTS ******//
+//// this problem input is set as an example
+//// to prove a lower bound of ceil(2n/3)
+//// for C_3 x C_n
+//// please read carefully for replication
+///
 //// number of rows in the graph
-#define NUM_R 6
+#define NUM_R 3
 //// number of columns in the graph
 //// NOTE: NUM_C >= 13
-#define NUM_C 13
+#define NUM_C 14
 //// set to 1 if the graph is cycle x cycle
 //// set to 0 if the graph is path x cycle
 #define CYCLE 1
@@ -17,12 +22,14 @@
 //// maximum cost of a broadcast
 #define MAX_C 3
 //// do you want to produce figures?
-#define PROD_FIG 1
+#define PROD_FIG 0
 //// induction values
-//// first index needs to be zero
-//// for C_3 x C_n
-//// int mvalues[] = {0, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10};
-int mvalues[] = {0, 2, 3, 4, 5, 7, 7, 9, 10, 11, 12, 14, 14, 16, 17, 18, 18};
+//// ATTENTION !
+//// FIRST INDEX MUST BE ZERO
+//// TO REPLICATE RESULTS FROM PAPER, FORMAT AS FOLLOWS
+//// {0, m_1, m_2, m_3, ... , m_k}
+//// ATTENTION !
+int mvalues[] = {0,1,2,2,3,4,4,5,6,6,7,8,8,9,10};
 ////****** SET PROBLEM INPUTS ******//
 
 //****** COUNTER ******//
