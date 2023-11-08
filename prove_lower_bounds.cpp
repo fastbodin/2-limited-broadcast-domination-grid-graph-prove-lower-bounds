@@ -5,10 +5,10 @@
 
 ////****** SET PROBLEM INPUTS ******//
 //// number of rows in the graph
-#define NUM_R 3
+#define NUM_R 6
 //// number of columns in the graph
 //// NOTE: NUM_C >= 13
-#define NUM_C 14
+#define NUM_C 13
 //// set to 1 if the graph is cycle x cycle
 //// set to 0 if the graph is path x cycle
 #define CYCLE 1
@@ -21,7 +21,8 @@
 //// induction values
 //// first index needs to be zero
 //// for C_3 x C_n
-int mvalues[] = {0, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10};
+//// int mvalues[] = {0, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10};
+int mvalues[] = {0, 2, 3, 4, 5, 7, 7, 9, 10, 11, 12, 14, 14, 16, 17, 18, 18};
 ////****** SET PROBLEM INPUTS ******//
 
 //****** COUNTER ******//
@@ -32,25 +33,25 @@ struct Counter{
     // number of cases at this cost considered
     unsigned long long int C;
     // those which do not dominate the middle
-    unsigned long long int DoesNotDominateMiddle;
+    unsigned long long int DoesNotDominate;
     // those which contain forbidden broadcasts
     unsigned long long int ForbiddenBroadcast; 
     // those which have base broadcast contradictions
-    unsigned long long int HasBroadcastScheme;
+    unsigned long long int HasBroadcast;
     // those which result in a minimality contradiction
-    unsigned long long int ResultsInMinimalityContradiction;
+    unsigned long long int InductiveArgument;
     // those which result in a neccessary broadcast contradiction 
-    // + HasBroadcastScheme contradiction
-    unsigned long long int NecessaryBroadcastsContradictionHasBroadcastScheme;
+    // + HasBroadcast contradiction
+    unsigned long long int NecessaryBroadcastHasBroadcast;
     // those which result in a neccessary broadcast contradiction 
-    // + ResultsInMinimalityContradiction contradiction 
-    unsigned long long int NecessaryBroadcastsContradictionResultsInMinimalityContradiction;
+    // + InductiveArgument contradiction 
+    unsigned long long int NecessaryBroadcastInductiveArgument;
     // those which have a subcase contradiction
-    // + HasBroadcastScheme contradiction
-    unsigned long long int ContradictionForEverySubCaseHasBroadcastScheme;
+    // + HasBroadcast contradiction
+    unsigned long long int AllSubcasesHasBroadcast;
     // those which have a subcase contradiction
-    // + ResultsInMinimalityContradiction contradiction
-    unsigned long long int ContradictionForEverySubCaseResultsInMinimalityContradiction; 
+    // + InductiveArgument contradiction
+    unsigned long long int AllSubcasesInductiveArgument; 
     // case which failed
     int Fail;
 };
@@ -372,7 +373,7 @@ void make_graph(struct Vertex graph[NUM_C][NUM_R][NUM_C]) {
 //
 // after having deleted num_del_col columns, is there a broadcast
 // which dominates the remaining vertices of cost <= x?
-bool HasBroadcastScheme(int num_del_col, int col_del_order[NUM_C],
+bool HasBroadcast(int num_del_col, int col_del_order[NUM_C],
                         int dominated[NUM_R][NUM_C],
                         struct Vertex graph[NUM_R][NUM_C],
                         int x, GRBEnv grb_env) {
@@ -509,7 +510,7 @@ bool HasBroadcastScheme(int num_del_col, int col_del_order[NUM_C],
 };
 
 // does the current broadcast result in a minimality contradiction?
-bool ResultsInMinimalityContradiction(int dominated[NUM_R][NUM_C],
+bool InductiveArgument(int dominated[NUM_R][NUM_C],
                                       struct Vertex graph[NUM_C][NUM_R][NUM_C],
                                       int x, GRBEnv grb_env) {
     int col_del_index = 0;
@@ -545,7 +546,7 @@ bool ResultsInMinimalityContradiction(int dominated[NUM_R][NUM_C],
         // x - mvalues[num_del_col] = cost we want to beat given
         // by the induction values
         // is there such a contradictory broadcast?
-        if (HasBroadcastScheme(num_del_col, col_del_order, dominated,
+        if (HasBroadcast(num_del_col, col_del_order, dominated,
                                 graph[num_del_col], x - mvalues[num_del_col],
                                 grb_env)) {
             //****** FIGURES ******//
@@ -773,32 +774,32 @@ bool ProduceAllSubBroadcasts(int level, int grid[NUM_R][NUM_C], int dominated[NU
         //
         // first we test whether or not the vertices dominated by the 
         // assumed subbroadcast can be dominated with less cost
-        if (HasBroadcastScheme(0, NULL, dominated, graph[0], cost - 1, grb_env)) {
+        if (HasBroadcast(0, NULL, dominated, graph[0], cost - 1, grb_env)) {
             //****** FIGURES ******//
             if (PROD_FIG) {
                 printf("col_del = []\n");
                 printf("num_c = %d\n", NUM_C);
-                printf("title = 'ContradictionForEverySubCase+HasBroadcastScheme'\n");
+                printf("title = 'ContradictionForEverySubCase+HasBroadcast'\n");
                 ProduceGraphic();
             }
             //****** FIGURES ******//
             //
             // we found a contradiction
-            counter[counter_cost].ContradictionForEverySubCaseHasBroadcastScheme += 1;
+            counter[counter_cost].AllSubcasesHasBroadcast += 1;
             return 1;
         }
         // the vertices dominated by the assumed subbroadcast does not yield a
         // contradiction as is, try induciton
-        if (ResultsInMinimalityContradiction(dominated, graph, cost, grb_env)) {
+        if (InductiveArgument(dominated, graph, cost, grb_env)) {
             //****** FIGURES ******//
             if (PROD_FIG) {
-                printf("title = 'ContradictionForEverySubCase+ResultsInMinimalityContradiction'\n");
+                printf("title = 'ContradictionForEverySubCase+InductiveArgument'\n");
                 ProduceGraphic();
             }
             //****** FIGURES ******//
             //
             // we found a conradiction
-            counter[counter_cost].ContradictionForEverySubCaseResultsInMinimalityContradiction += 1;
+            counter[counter_cost].AllSubcasesInductiveArgument += 1;
             return 1;
         }
         //****** FIGURES ******//
@@ -951,34 +952,34 @@ bool ManageLPs(int grid[NUM_R][NUM_C], int dominated[NUM_R][NUM_C],
     // first we test whether or not the vertices dominated by the base
     // broadcast can be dominated with less cost
     // original broadcast has cost = cost
-    if (HasBroadcastScheme(0, NULL, dominated, graph[0], cost - 1, grb_env)) {
+    if (HasBroadcast(0, NULL, dominated, graph[0], cost - 1, grb_env)) {
         //****** FIGURES ******//
         if (PROD_FIG) {
             printf("col_del = []\n");
             printf("num_c = %d\n", NUM_C);
-            printf("title = 'HasBroadcastScheme'\n");
+            printf("title = 'HasBroadcast'\n");
             ProduceGraphic();
         }
         //****** FIGURES ******//
         //
         // we found a conradiction
-        counter[cost].HasBroadcastScheme += 1;
+        counter[cost].HasBroadcast += 1;
         return 1;
     }
 
     // the vertices dominated by the base broadcast does not yield a
     // contradiction as is, try induciton
-    if (ResultsInMinimalityContradiction(dominated, graph, cost, grb_env)) {
+    if (InductiveArgument(dominated, graph, cost, grb_env)) {
         //****** FIGURES ******//
         if (PROD_FIG) {
-            printf("title = 'ResultsInMinimalityContradiction'\n");
+            printf("title = 'InductiveArgument'\n");
             ProduceDominated(dominated);
             ProduceGraphic();
         }
         //****** FIGURES ******//
         //
         // we found a conradiction
-        counter[cost].ResultsInMinimalityContradiction += 1;
+        counter[cost].InductiveArgument += 1;
         return 1;
     }
 
@@ -998,12 +999,12 @@ bool ManageLPs(int grid[NUM_R][NUM_C], int dominated[NUM_R][NUM_C],
 
     // first we test whether or not the vertices dominated by the 
     // broadcast with neccessary broadcast vertices can be dominated with less cost
-    if (HasBroadcastScheme(0, NULL, dominated, graph[0], nec_cost - 1, grb_env)) {
+    if (HasBroadcast(0, NULL, dominated, graph[0], nec_cost - 1, grb_env)) {
         //****** FIGURES ******//
         if (PROD_FIG) {
             printf("col_del = []\n");
             printf("num_c = %d\n", NUM_C);
-            printf("title = 'NecessaryBroadcastsContradiction+HasBroadcastScheme'\n");
+            printf("title = 'NecessaryBroadcastsContradiction+HasBroadcast'\n");
             ProduceGraphic();
         }
         //****** FIGURES ******//
@@ -1011,16 +1012,16 @@ bool ManageLPs(int grid[NUM_R][NUM_C], int dominated[NUM_R][NUM_C],
         // remove neccessary broadcasts
         RemoveNecBroadcast(grid, dominated, graph[0]);
         // we found a conradiction
-        counter[cost].NecessaryBroadcastsContradictionHasBroadcastScheme += 1;
+        counter[cost].NecessaryBroadcastHasBroadcast += 1;
         return 1;
     }
 
     // the vertices dominated by the broadcast with neccessary broadcast vertices
     // does not yield a contradiction as is, try induciton
-    if (ResultsInMinimalityContradiction(dominated, graph, nec_cost, grb_env)) {
+    if (InductiveArgument(dominated, graph, nec_cost, grb_env)) {
         //****** FIGURES ******//
         if (PROD_FIG) {
-            printf("title = 'NecessaryBroadcastsContradiction+ResultsInMinimalityContradiction'\n");
+            printf("title = 'NecessaryBroadcastsContradiction+InductiveArgument'\n");
             ProduceDominated(dominated);
             ProduceGraphic();
         }
@@ -1028,7 +1029,7 @@ bool ManageLPs(int grid[NUM_R][NUM_C], int dominated[NUM_R][NUM_C],
         //
         // we found a conradiction
         RemoveNecBroadcast(grid, dominated, graph[0]);
-        counter[cost].NecessaryBroadcastsContradictionResultsInMinimalityContradiction += 1;
+        counter[cost].NecessaryBroadcastInductiveArgument += 1;
         return 1;
     }
     
@@ -1108,7 +1109,7 @@ bool PxP_Not_Cannonical(int grid[NUM_R][NUM_C]) {
 };
 
 // check whether a given broadcast dominates the middle of the grid
-bool DoesNotDominateMiddle(int dominated[NUM_R][NUM_C]) {
+bool DoesNotDominate(int dominated[NUM_R][NUM_C]) {
     int row, col;
 
     // center columns need to be dominated
@@ -1154,20 +1155,6 @@ bool ForbiddenBroadcast(int grid[NUM_R][NUM_C],
     // no forbidden broadcast found
     return 0;
 };
-
-
-// CHECK THAT THE ROW TWO PREVIOUS IS DOMINATED
-bool three_row_prev_not_dom(int row, int dominated[NUM_R][NUM_C]) {
-    int col;
-    for (col = 6; col < NUM_C-6; col++) {       
-        if (dominated[row][col] == 0) {
-            // not dominated
-            return 1;
-        }
-    }
-    return 0;
-};
-//
 //****** TOOLS FOR CREATING ALL THE BROADCASTS ******//
 
 
@@ -1202,8 +1189,8 @@ bool fill_grid(int level, int grid[NUM_R][NUM_C],
         // otherwise cannonical
         counter[des_cost].C += 1;
         // does the broadcast dominate the middle of the grid?
-        if (DoesNotDominateMiddle(dominated)) {
-            counter[des_cost].DoesNotDominateMiddle += 1;
+        if (DoesNotDominate(dominated)) {
+            counter[des_cost].DoesNotDominate += 1;
             return 0;
         }
         // does it contain a forbidden broadcast?
@@ -1344,26 +1331,26 @@ int main(void) {
         if (PROD_FIG) {
             printf("#### Cost = %d ###\n", cost);
             printf("#|C|: %llu\n", counter[cost].C);
-            printf("#DoesNotDominateMiddle: %llu\n", counter[cost].DoesNotDominateMiddle);
+            printf("#DoesNotDominate: %llu\n", counter[cost].DoesNotDominate);
             printf("#ForbiddenBroadcast: %llu\n", counter[cost].ForbiddenBroadcast);
-            printf("#HasBroadcastScheme: %llu\n", counter[cost].HasBroadcastScheme);
-            printf("#ResultsInMinimalityContradiction: %llu\n", counter[cost].ResultsInMinimalityContradiction);
-            printf("#NecessaryBroadcastsContradictionHasBroadcastScheme: %llu\n", counter[cost].NecessaryBroadcastsContradictionHasBroadcastScheme);
-            printf("#NecessaryBroadcastsContradictionResultsInMinimalityContradiction: %llu\n", counter[cost].NecessaryBroadcastsContradictionResultsInMinimalityContradiction);
-            printf("#ContradictionForEverySubCaseHasBroadcastScheme: %llu\n", counter[cost].ContradictionForEverySubCaseHasBroadcastScheme);
-            printf("#ContradictionForEverySubCaseResultsInMinimalityContradiction: %llu\n", counter[cost].ContradictionForEverySubCaseResultsInMinimalityContradiction);
+            printf("#HasBroadcast: %llu\n", counter[cost].HasBroadcast);
+            printf("#InductiveArgument: %llu\n", counter[cost].InductiveArgument);
+            printf("#NecessaryBroadcastHasBroadcast: %llu\n", counter[cost].NecessaryBroadcastHasBroadcast);
+            printf("#NecessaryBroadcastInductiveArgument: %llu\n", counter[cost].NecessaryBroadcastInductiveArgument);
+            printf("#AllSubcasesHasBroadcast: %llu\n", counter[cost].AllSubcasesHasBroadcast);
+            printf("#AllSubcasesInductiveArgument: %llu\n", counter[cost].AllSubcasesInductiveArgument);
             printf("#Failed: %d\n",counter[cost].Fail);
         } else {
             printf("### Cost = %d ###\n", cost);
             printf("|C|: %llu\n", counter[cost].C);
-            printf("DoesNotDominateMiddle: %llu\n", counter[cost].DoesNotDominateMiddle);
+            printf("DoesNotDominate: %llu\n", counter[cost].DoesNotDominate);
             printf("ForbiddenBroadcast: %llu\n", counter[cost].ForbiddenBroadcast);
-            printf("HasBroadcastScheme: %llu\n", counter[cost].HasBroadcastScheme);
-            printf("ResultsInMinimalityContradiction: %llu\n", counter[cost].ResultsInMinimalityContradiction);
-            printf("NecessaryBroadcastsContradictionHasBroadcastScheme: %llu\n", counter[cost].NecessaryBroadcastsContradictionHasBroadcastScheme);
-            printf("NecessaryBroadcastsContradictionResultsInMinimalityContradiction: %llu\n", counter[cost].NecessaryBroadcastsContradictionResultsInMinimalityContradiction);
-            printf("ContradictionForEverySubCaseHasBroadcastScheme: %llu\n", counter[cost].ContradictionForEverySubCaseHasBroadcastScheme);
-            printf("ContradictionForEverySubCaseResultsInMinimalityContradiction: %llu\n", counter[cost].ContradictionForEverySubCaseResultsInMinimalityContradiction);
+            printf("HasBroadcast: %llu\n", counter[cost].HasBroadcast);
+            printf("InductiveArgument: %llu\n", counter[cost].InductiveArgument);
+            printf("NecessaryBroadcastHasBroadcast: %llu\n", counter[cost].NecessaryBroadcastHasBroadcast);
+            printf("NecessaryBroadcastInductiveArgument: %llu\n", counter[cost].NecessaryBroadcastInductiveArgument);
+            printf("AllSubcasesHasBroadcast: %llu\n", counter[cost].AllSubcasesHasBroadcast);
+            printf("AllSubcasesInductiveArgument: %llu\n", counter[cost].AllSubcasesInductiveArgument);
             printf("Failed: %d\n",counter[cost].Fail);
         }
     }
